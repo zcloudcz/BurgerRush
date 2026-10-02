@@ -1,0 +1,11 @@
+{
+  "name": "burger-rush",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../RestaurantCommon/scripts/serve.mjs burger",
+    "build": "node ../RestaurantCommon/scripts/build.mjs burger",
+    "preview": "node ../RestaurantCommon/scripts/serve.mjs burger --preview"
+  }
+}
