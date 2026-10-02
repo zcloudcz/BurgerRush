@@ -1,16 +1,16 @@
 # Burger Rush
 
-Samostatná 3D hra o budování burger restaurace. Griluj placky, sestavuj burgery, obsluhuj hosty, odemykej posezení i drive-thru a najmi tým, který převezme práci.
+A standalone 3D game about building a burger restaurant. Grill patties, assemble burgers, serve guests, unlock dine-in seating and a drive-thru, and hire a team to take over the work.
 
-## Spuštění
+## Running
 
-Jednou spusť `npm ci` v sousedním projektu `../RestaurantCommon`. Potom v tomto adresáři:
+Run `npm ci` once in the sibling project `../RestaurantCommon`. Then, in this directory:
 
 ```powershell
 npm run dev
 ```
 
-Hra běží na `http://localhost:4173`. Na telefonu ve stejné síti použij adresu `Network` vypsanou serverem. WASD/šipky, tažení prstem nebo kliknutí na stanici ovládají postavu; činnosti u stanic jsou automatické.
+The game runs at `http://localhost:4173`. On a phone on the same network, use the `Network` address printed by the server. WASD/arrow keys, finger drag, or a click on a station control the character; actions at stations are automatic.
 
 ## Build
 
@@ -19,40 +19,40 @@ npm run build
 npm run preview
 ```
 
-Samostatně nasaditelný výsledek je v `dist/`. Instalace PWA a offline cache vyžadují HTTPS nebo localhost. Mobilní aplikace z obchodu není pro hraní potřeba.
+The standalone deployable output is in `dist/`. PWA installation and the offline cache require HTTPS or localhost. A mobile app from a store is not needed to play.
 
-`src/definition.ts` vlastní ekonomiku, mapu, recepty a odemykání této hry. `public/` obsahuje originální ikony a vlastní PWA manifest. Sdílený kód a testy jsou v `RestaurantCommon`. Uložený postup má vlastní klíč `restaurant.burger.v1`; záloha v nastavení je přenositelný JSON.
+`src/definition.ts` owns this game's economy, map, recipes, and unlocks. `public/` contains original icons and a dedicated PWA manifest. Shared code and tests are in `RestaurantCommon`. Saved progress uses its own key `restaurant.burger.v1`; the backup in the settings is portable JSON.
 
-Hra má kariéru s 9 pobočkami. Každá má 18 rozšíření, 4 recepty a tým až 10 zaměstnanců ve 4 rolích. Reklamy a nákupy za skutečné peníze nejsou součástí této verze.
+The game has a career with 9 branches. Each has 18 expansions, 4 recipes, and a team of up to 10 employees in 4 roles. Ads and real-money purchases are not part of this version.
 
-Třetí rozšíření přidává fritézu. Burgery a hranolky lze nést společně, například 2 burgery a 3 porce hranolků při kapacitě 5. Ukazatel tácu uvádí oba počty, prostor sdílejí. Výdej a drive-thru ukládají oba druhy zvlášť; hranolky se vyloží první, aby je zákazník mohl dostat k burgeru za příplatek od 4 $. Bez hranolků prodej burgerů pokračuje. Po plné automatizaci přílohy doplňuje číšník. Starší uložené pozice se převedou automaticky.
+The third expansion adds a deep fryer. Burgers and fries can be carried together, for example 2 burgers and 3 portions of fries with a capacity of 5. The tray indicator shows both counts; they share the space. The pickup counter and the drive-thru store both kinds separately; fries are unloaded first so the customer can get them with the burger for a surcharge from $4. Without fries, burger sales continue. Once the side is fully automated, the waiter restocks it. Older saved games are converted automatically.
 
-Žlutý panel „Volné peníze“ ukazuje aktuální neinvestovanou hotovost. Částka již vložená do rozšíření se zobrazuje zvlášť v jeho financování.
+The yellow "Free money" panel (Volné peníze) shows the current uninvested cash. The amount already put into an expansion is shown separately in its funding.
 
 
-## Druhá kapitola: rozšíření 13–18
+## Second chapter: expansions 13–18
 
-Na dokončený původní podnik navazuje šest dalších nákupů bez resetu uložené hry:
+Six more purchases follow the completed original restaurant, without resetting the saved game:
 
-| Úroveň | Rozšíření | Efekt | Cena |
+| Level | Expansion | Effect | Price |
 | --- | --- | --- | --- |
-| 13 | Východní jídelna | nová plocha a 4 stoly; +5 míst na tácu | 3 500 |
-| 14 | Zahradní terasa | průchozí terasa a 4 stoly; tým +35 % | 4 500 |
-| 15 | Severní kuchyň | kuchyňské křídlo s další pracovní stanicí; čtvrtý recept | 5 500 |
-| 16 | Expresní křídlo | další výdej s vlastní frontou; výroba +50 % | 6 500 |
-| 17 | Prémiový salonek | dva další stoly a vybavení; tržby +20 % | 8 000 |
-| 18 | Vstupní zahrada | průchozí zahrada, osvětlení a zlaté ocenění; offline +50 % | 10 000 |
+| 13 | East dining room | new area and 4 tables; +5 tray slots | 3 500 |
+| 14 | Garden terrace | walk-through terrace and 4 tables; team +35 % | 4 500 |
+| 15 | North kitchen | kitchen wing with another work station; fourth recipe | 5 500 |
+| 16 | Express wing | another pickup counter with its own queue; production +50 % | 6 500 |
+| 17 | Premium lounge | two more tables and furnishings; revenue +20 % | 8 000 |
+| 18 | Entrance garden | walk-through garden, lighting, and a golden award; offline +50 % | 10 000 |
 
-Nový recept je BBQ burger / lanýžová pizza podle hry. Druhá kapitola je ověřená automatickou simulací nákupů z běžných tržeb bez dodané hotovosti.
+The new recipe is BBQ burger / truffle pizza, depending on the game. The second chapter was verified by an automatic simulation of purchases made from regular revenue, with no cash injected.
 
-Každé rozšíření 1–18 má fyzický projev v mapě. Původní čtyři stoly lze rozšířit až na 14. Nová kuchyňská stanice i expresní výdej fungují ručně i s personálem. Staré pozice doplní nové zamčené části automaticky; již zakoupené úrovně je otevřou bez opakovaného placení.
+Every expansion 1–18 has a physical presence on the map. The original four tables can be expanded up to 14. The new kitchen station and the express pickup counter work both manually and with staff. Old saved games get the new locked parts added automatically; levels already purchased open them without paying again.
 
-## Restaurační impérium
+## Restaurant empire
 
-Po dokončení úrovně 18 otevři mapu přes „Odejít z restaurace“ na počítači, „Impérium“ na mobilu nebo tlačítko v oznámení dokončení. Postupně vybuduješ 3 městské, 3 celostátní a 3 světové pobočky. Další pobočka vyžaduje dokončenou předchozí a jednorázovou cenu otevření: 2 500, 5 000, 10 000, 18 000, 28 000, 42 000, 60 000 a 85 000 $.
+After completing level 18, open the map via "Leave the restaurant" (Odejít z restaurace) on desktop, "Empire" (Impérium) on mobile, or the button in the completion notice. You gradually build 3 city, 3 national, and 3 worldwide branches. The next branch requires the previous one to be completed and a one-time opening fee: $2 500, 5 000, 10 000, 18 000, 28 000, 42 000, 60 000, and 85 000.
 
-Nová pobočka začíná na úrovni 0, bez zakoupených vylepšení a personálu. Zůstatek společné pokladny po zaplacení otevření si ponecháš. Do vlastněných poboček se můžeš zdarma vracet; každá si uchovává vlastní vybavení, zásoby, tým a postup. Neaktivní automatizované pobočky přispívají odhadovaným pasivním příjmem po odečtení mezd. Burger a Pizza mají oddělená impéria i pokladny. Záloha obsahuje celou síť a stará pozice se převede na první pobočku.
+A new branch starts at level 0, with no purchased upgrades and no staff. You keep the shared treasury balance after paying the opening fee. You can return to owned branches for free; each one keeps its own equipment, stock, team, and progress. Inactive automated branches contribute an estimated passive income after wages are deducted. Burger and Pizza have separate empires and treasuries. The backup contains the whole network, and an old saved game is converted into the first branch.
 
-Tým se ze 4 zaměstnanců na úrovni 11 rozroste na 10 na úrovni 18. Každé rozšíření 13–18 přidá dalšího člověka. Plný tým stojí 23 $ za minutu; sazbu a případný dluh najdeš ve „Vylepšení & tým“. Mzdy se platí automaticky. Při prázdné pokladně tým pokračuje na dluh a dlužné mzdy se odečtou z budoucích příjmů.
+The team grows from 4 employees at level 11 to 10 at level 18. Each expansion 13–18 adds another person. A full team costs $23 per minute; you can find the rate and any debt in "Upgrades & team" (Vylepšení & tým). Wages are paid automatically. When the treasury is empty, the team keeps working on credit and the owed wages are deducted from future income.
 
-Technické podrobnosti: [model impéria a ukládání](https://github.com/zcloudcz/RestaurantCommon/blob/main/docs/EMPIRE.md).
+Technical details: [empire model and saving](https://github.com/zcloudcz/RestaurantCommon/blob/main/docs/EMPIRE.md).

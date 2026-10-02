@@ -12,7 +12,7 @@ npm run build    # output in dist/
 npm run preview
 ```
 
-Detailed game description (Czech): [docs/DETAILS.md](docs/DETAILS.md)
+Detailed game description: [docs/DETAILS.md](docs/DETAILS.md)
 
 ## Repository family
 
