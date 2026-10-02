@@ -12,6 +12,18 @@ npm run build    # output in dist/
 npm run preview
 ```
 
+## Mobile apps (Android / iOS)
+
+Native shells via [Capacitor](https://capacitorjs.com): `android/` and `ios/` wrap the same `dist/` build. App ID `cz.zcloud.burgerrush`.
+
+```bash
+npm ci
+npm run sync      # build web + copy into android/ and ios/
+npm run android   # sync and open in Android Studio
+```
+
+Icons and splash are generated from `assets/logo.png` (made by `RestaurantCommon/scripts/icons.mjs`) with `npx @capacitor/assets generate`. iOS builds require macOS/Xcode (CI).
+
 Detailed game description: [docs/DETAILS.md](docs/DETAILS.md)
 
 ## Repository family
