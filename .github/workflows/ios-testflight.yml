@@ -1,0 +1,145 @@
+# iOS release: build the Capacitor app on macOS, sign it with the team's
+# Apple Distribution certificate and upload it to TestFlight. Manual only.
+#
+# Repository secrets (values live in Vaultwarden ASISTENT, never in git):
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_BASE64   App Store Connect API key "hermes-games"
+#   IOS_CERTIFICATE_BASE64, IOS_CERTIFICATE_PASSWORD  Apple Distribution .p12
+#   IOS_PROVISION_PROFILE_BASE64                    App Store profile for this bundle ID
+# Manual signing on the App target only, same model as Jay and zDrive: cloud
+# signing needs a development profile and a registered device.
+
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Marketing version (CFBundleShortVersionString)
+        required: true
+        default: "1.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+env:
+  GAME: BurgerRush
+  BUNDLE_ID: cz.zcloud.burgerrush
+  TEAM_ID: DZR3FD9ZNT
+
+jobs:
+  testflight:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.GAME }}
+      - uses: actions/checkout@v4
+        with:
+          repository: zcloudcz/RestaurantCommon
+          path: RestaurantCommon
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build web and sync iOS
+        run: |
+          (cd RestaurantCommon && npm ci)
+          cd "$GAME"
+          npm ci
+          npm run build
+          npx cap sync ios
+
+      - name: Archive, sign and upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          VERSION_NAME: ${{ inputs.version_name || '1.0' }}
+        run: |
+          set -euo pipefail
+          umask 077
+          for v in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8_BASE64 IOS_CERTIFICATE_BASE64 IOS_CERTIFICATE_PASSWORD IOS_PROVISION_PROFILE_BASE64; do
+            [ -n "${!v}" ] || { echo "::error::Secret $v is not set."; exit 1; }
+          done
+          WORK="$(mktemp -d "$RUNNER_TEMP/ios.XXXXXX")"
+          KEYCHAIN="$WORK/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          INSTALLED_PROFILE=""
+          cleanup() {
+            [ -n "$INSTALLED_PROFILE" ] && rm -f "$INSTALLED_PROFILE"
+            security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || true
+            rm -rf "$WORK"
+          }
+          trap cleanup EXIT
+
+          printf '%s' "$IOS_CERTIFICATE_BASE64" | base64 --decode > "$WORK/cert.p12"
+          printf '%s' "$IOS_PROVISION_PROFILE_BASE64" | base64 --decode > "$WORK/profile.mobileprovision"
+          mkdir -p "$WORK/keys"
+          printf '%s' "$ASC_KEY_P8_BASE64" | base64 --decode > "$WORK/keys/AuthKey_${ASC_KEY_ID}.p8"
+
+          # Throwaway keychain; the partition list lets codesign use the key without a UI prompt.
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$WORK/cert.p12" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN" >/dev/null
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychain -d user -s "$KEYCHAIN"
+
+          security cms -D -i "$WORK/profile.mobileprovision" -o "$WORK/profile.plist"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$WORK/profile.plist")"
+          PROFILE_APP_ID="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$WORK/profile.plist")"
+          [ "$PROFILE_APP_ID" = "$TEAM_ID.$BUNDLE_ID" ] || { echo "::error::Profile is for $PROFILE_APP_ID, expected $TEAM_ID.$BUNDLE_ID"; exit 1; }
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          INSTALLED_PROFILE="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          cp "$WORK/profile.mobileprovision" "$INSTALLED_PROFILE"
+          SIGNING_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" | awk '/^[[:space:]]*[0-9]+\)/ { print $2; exit }')"
+          [ -n "$SIGNING_IDENTITY" ] || { echo "::error::No code-signing identity in IOS_CERTIFICATE_BASE64."; exit 1; }
+
+          cd "$GAME/ios/App"
+          # Manual signing on the App target only; SPM packages must stay unsigned.
+          ruby -r xcodeproj -e '
+            team, identity, profile = ARGV
+            project = Xcodeproj::Project.open("App.xcodeproj")
+            target = project.targets.find { |t| t.name == "App" } or abort "App target not found"
+            config = target.build_configurations.find { |c| c.name == "Release" } or abort "Release config not found"
+            config.build_settings["CODE_SIGN_STYLE"] = "Manual"
+            config.build_settings["DEVELOPMENT_TEAM"] = team
+            config.build_settings["CODE_SIGN_IDENTITY"] = identity
+            config.build_settings["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = identity
+            config.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = profile
+            project.save
+          ' "$TEAM_ID" "$SIGNING_IDENTITY" "$PROFILE_UUID"
+
+          # Build number must grow with every upload of the same version.
+          xcodebuild archive \
+            -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$WORK/App.xcarchive" \
+            MARKETING_VERSION="$VERSION_NAME" CURRENT_PROJECT_VERSION="${{ github.run_number }}"
+
+          cat > "$WORK/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key><dict><key>$BUNDLE_ID</key><string>$PROFILE_UUID</string></dict>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+
+          xcodebuild -exportArchive -archivePath "$WORK/App.xcarchive" \
+            -exportOptionsPlist "$WORK/ExportOptions.plist" -exportPath "$WORK/export"
+
+          API_PRIVATE_KEYS_DIR="$WORK/keys" xcrun altool --upload-app --type ios \
+            --file "$(ls "$WORK"/export/*.ipa)" \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
